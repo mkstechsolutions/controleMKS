@@ -424,3 +424,13 @@ body {
         width: 50% !important; 
     }
 }
+
+/* Esconde o botão de filtros no PC, pois as datas já aparecem */
+@media (min-width: 769px) {
+    #btn-toggle-filtros {
+        display: none;
+    }
+    .dates-wrapper {
+        display: flex !important; /* Garante que no PC sempre apareça */
+    }
+}
