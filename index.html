@@ -14,6 +14,17 @@
 </head>
 
 <body>
+
+    <div id="login-overlay" style="position: fixed; inset: 0; background: #0a0b0d; z-index: 9999; display: none; align-items: center; justify-content: center;">
+    <div class="modal-card" style="text-align: center; border: 1px solid var(--primary);">
+        <h2 style="color: var(--primary); margin-bottom: 20px;">MKS Tech Solutions</h2>
+        <p style="color: var(--text-dim); margin-bottom: 15px;">Acesso Restrito</p>
+        <input type="password" id="senha-login" class="mks-input" placeholder="Senha Mestra" style="text-align: center;">
+        <button id="btn-entrar" onclick="realizarLogin()" class="btn-full">Entrar</button>
+        <p id="msg-login" style="margin-top: 15px; font-size: 0.9rem;"></p>
+    </div>
+</div>
+
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-top">
