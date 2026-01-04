@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MKS Tech Solutions</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <div class="sidebar-brand">
+                    <h2 class="logo-text">MKS Tech Solutions</h2>
+                </div>
+                <nav class="sidebar-nav">
+                    <button onclick="showSection('dash')" class="nav-item active" id="btn-dash">📊 Dashboard</button>
+                    <button onclick="showSection('estoque')" class="nav-item" id="btn-estoque">📦 Estoque</button>
+                    <button onclick="showSection('financeiro')" class="nav-item" id="btn-fin">💰 Financeiro</button>
+                </nav>
+            </div>
+            <div class="sidebar-bottom">
+                <div class="status-card">
+                    <div class="status-info">
+                        <span id="dot-status" class="dot"></span>
+                        <span id="status-conexao">🟠 Sincronizando...</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <section id="sec-dash" class="app-section">
+                <header class="section-header">
+                    <h3>📊 Resumo Geral</h3>
+                    <div class="header-filters">
+                        <button id="btn-toggle-filtros" onclick="toggleFiltrosMobile()" class="btn-action-secondary">📅
+                            Filtrar Datas</button>
+
+                        <div id="container-datas-mobile" class="dates-wrapper">
+                            <input type="date" id="dash-data-inicio" onchange="renderDash()" class="mks-input-filter">
+                            <input type="date" id="dash-data-fim" onchange="renderDash()" class="mks-input-filter">
+                        </div>
+
+                        <button onclick="abrirModalVenda()" class="btn-action-primary">🚀 Nova Venda</button>
+                    </div>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Saldo Líquido</span>
+                        <h2 id="dash-caixa">R$ 0,00</h2>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Total Entrada</span>
+                        <h2 id="dash-bruto" class="text-success">R$ 0,00</h2>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Total Saídas</span>
+                        <h2 id="dash-saidas" class="text-danger">R$ 0,00</h2>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Lucro em Estoque</span>
+                        <h2 id="dash-lucro-estoque">R$ 0,00</h2>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Itens Disponíveis</span>
+                        <h2 id="dash-estoque-qtd">0</h2>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Ticket Médio</span>
+                        <h2 id="dash-ticket">R$ 0,00</h2>
+                    </div>
+                </div>
+
+                <div class="mks-chart-container">
+                    <canvas id="financeChart"></canvas>
+                </div>
+            </section>
+
+            <section id="sec-estoque" class="app-section" style="display:none;">
+                <header class="section-header">
+                    <h3>📦 Estoque</h3>
+                    <div class="header-filters">
+                        <input type="text" id="filtro-estoque" placeholder="Procurar produto..."
+                            oninput="renderEstoque()" class="mks-input-filter">
+                        <button onclick="exportarEstoque()" class="btn-action-secondary" style="background: #4b5563;">📥
+                            CSV</button>
+                        <button onclick="abrirModalAdd()" class="btn-action-primary">+ Novo Produto</button>
+                    </div>
+                </header>
+                <table class="mks-table">
+                    <thead>
+                        <tr>
+                            <th>ID/SN</th>
+                            <th>Categoria</th>
+                            <th>Produto</th>
+                            <th>Detalhes</th>
+                            <th>Qtd</th>
+                            <th>Venda</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-estoque"></tbody>
+                </table>
+            </section>
+
+            <section id="sec-financeiro" class="app-section" style="display:none;">
+                <header class="section-header">
+                    <h3>💰 Financeiro</h3>
+                    <div class="header-filters">
+                        <input type="text" id="filtro-financeiro" placeholder="Filtrar..." oninput="renderFinanceiro()"
+                            class="mks-input-filter">
+                    </div>
+                </header>
+                <table class="mks-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Pagamento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-financeiro"></tbody>
+                </table>
+            </section>
+
+            <footer class="footer">
+                <p class="footer-text mb-0"> &copy; 2026 MKS Tech Solutions. Todos os direitos reservados.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div id="modalAdd" class="modal-overlay">
+        <div class="modal-card">
+            <h3>Cadastrar Produto</h3>
+            <select id="add-categoria" class="mks-input" onchange="renderCamposDinamicos()">
+                <option value="iPhone">iPhone</option>
+                <option value="Notebook">Notebook</option>
+                <option value="Acessório">Acessório</option>
+            </select>
+            <div id="campos-dinamicos"></div>
+            <div class="modal-footer">
+                <button onclick="fecharModal('modalAdd')" class="btn-link">Cancelar</button>
+                <button id="btn-salvar-produto" onclick="salvarProduto()" class="btn-action-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalVenda" class="modal-overlay">
+        <div class="modal-card">
+            <div id="venda-step-1">
+                <h3>Nova Venda</h3>
+                <label class="stat-label">Item</label>
+                <select id="venda-select-item" class="mks-input" onchange="atualizarValorSugerido()"></select>
+                <label class="stat-label">Valor Final</label>
+                <input type="text" id="venda-valor-final" class="mks-input">
+                <label class="stat-label">Pagamento</label>
+                <select id="venda-pagamento" class="mks-input">
+                    <option value="Pix">Pix</option>
+                    <option value="Cartão">Cartão</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                </select>
+                <button onclick="proximoPassoVenda()" class="btn-full">Próximo</button>
+                <button onclick="fecharModal('modalVenda')" class="btn-link">Cancelar</button>
+            </div>
+            <div id="venda-step-2" style="display:none;">
+                <h3>Dados Cliente</h3>
+                <input type="text" id="cli-nome" class="mks-input" placeholder="Nome">
+                <input type="text" id="cli-cpf" class="mks-input" placeholder="CPF">
+                <div class="modal-footer">
+                    <button onclick="voltarPassoVenda()" class="btn-link">Voltar</button>
+                    <button id="btn-finalizar-venda" onclick="confirmarVendaFinal()"
+                        class="btn-action-primary">Finalizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="area-recibo"
+        style="display:none; width: 700px; padding: 50px; background: white; color: #1a1a1a; font-family: 'Helvetica', sans-serif; line-height: 1.6;">
+
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #7c4dff; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+                <h1 style="margin: 0; color: #7c4dff; font-size: 28px; letter-spacing: -1px;">MKS <span
+                        style="color: #333; font-weight: normal;">Tech Solutions</span></h1>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666; text-transform: uppercase;">Recibo de Venda
+                    Eletrônico</p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; font-size: 14px; font-weight: bold;">Data: <span id="pdf-data"
+                        style="font-weight: normal;"></span></p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 40px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #7c4dff; text-transform: uppercase;">Dados do Cliente
+            </h4>
+            <p style="margin: 0; font-size: 16px; font-weight: bold;"><span id="pdf-cliente"></span></p>
+            <p style="margin: 2px 0 0 0; font-size: 14px; color: #555;">CPF: <span id="pdf-cpf"></span></p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px;">
+            <thead>
+                <tr style="background: #f1f1f1;">
+                    <th
+                        style="text-align: left; padding: 12px; font-size: 13px; text-transform: uppercase; color: #666; border-bottom: 1px solid #ddd;">
+                        Descrição do Produto</th>
+                    <th
+                        style="text-align: right; padding: 12px; font-size: 13px; text-transform: uppercase; color: #666; border-bottom: 1px solid #ddd;">
+                        Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 20px 12px; border-bottom: 1px solid #eee;">
+                        <div style="font-weight: bold; font-size: 16px;" id="pdf-prod-nome"></div>
+                        <div style="font-size: 13px; color: #7c4dff; margin-top: 4px;" id="pdf-prod-sn"></div>
+                    </td>
+                    <td style="text-align: right; padding: 20px 12px; border-bottom: 1px solid #eee; font-weight: bold; font-size: 16px;"
+                        id="pdf-prod-valor"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between;">
+            <div style="width: 60%; font-size: 12px; color: #888;">
+                <p style="margin: 0;">Obrigado por sua compra!</p>
+                <p style="margin: 5px 0;">Este documento é um recibo de pagamento referente aos itens descritos acima.
+                </p>
+            </div>
+            <div style="width: 35%; text-align: right;">
+                <div style="border-top: 2px solid #333; padding-top: 10px;">
+                    <p style="margin: 0; font-size: 12px; text-transform: uppercase; color: #666;">Valor Total</p>
+                    <h2 style="margin: 0; font-size: 24px; color: #1a1a1a;" id="pdf-total"></h2>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 80px; text-align: center;">
+            <div
+                style="width: 250px; border-top: 1px solid #ccc; margin: 0 auto; padding-top: 5px; font-size: 11px; color: #999;">
+                MKS TECH SOLUTIONS
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
