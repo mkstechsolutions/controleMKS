@@ -434,3 +434,134 @@ body {
         display: flex !important; /* Garante que no PC sempre apareça */
     }
 }
+
+
+/* --- UI DE LOGIN SYSTEMPAY --- */
+.mks-login-screen {
+    position: fixed;
+    inset: 0;
+    background: #05070a; /* Fundo escuro profundo da imagem */
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+
+.login-icon-box {
+    width: 60px;
+    height: 60px;
+    background: #421892; /* Azul vibrante */
+    border-radius: 14px;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(146, 37, 235, 0.541);
+}
+
+.login-brand {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -1.5px;
+    margin-bottom: 5px;
+}
+
+.login-brand span {
+    color: var(--primary);
+}
+
+.login-subtitle {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    margin-bottom: 35px;
+}
+
+.login-card {
+    background: #0f1218;
+    border: 1px solid #1f2937;
+    border-radius: 20px;
+    padding: 35px 25px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.input-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    color: #9ca3af;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.input-group input {
+    width: 100%;
+    background: #05070a;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.btn-login-main {
+    width: 100%;
+    background: #421892;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 8px 15px rgba(130, 52, 219, 0.288);
+}
+
+.btn-login-main:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.login-footer-tags {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #1f2937;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    color: #4b5563;
+    font-size: 0.8rem;
+}
+
+.login-copyright {
+    margin-top: 35px;
+    color: #4b5563;
+    font-size: 0.75rem;
+}
+
+/* Ajuste Mobile */
+@media (max-width: 480px) {
+    .login-card { padding: 25px 20px; }
+    .login-brand { font-size: 1.8rem; }
+}
