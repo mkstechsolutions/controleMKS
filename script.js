@@ -1,13 +1,13 @@
 const URL_API = "https://script.google.com/macros/s/AKfycbzS_fuG0LNhfvMPdr5WKGK57ULvf8_xaAoAMgxeoLmcoMondkP2-zcc22Bv_Us5WCr5ww/exec";
 let DADOS_GLOBAIS = { estoque: [], financeiro: [] };
 let meuGrafico = null;
-let timerInatividade; // Variável para controlar o tempo de bloqueio
+let timerInatividade; 
 
-// --- LÓGICA DE INATIVIDADE ---
+// --- LÓGICA DE INATIVIDADE (Ajustado para 15 minutos) ---
 function resetarTimer() {
     clearTimeout(timerInatividade);
-    // 3600000 ms = 1 hora
-    const tempoLimite = 60 * 60 * 1000; 
+    // 15 minutos = 15 * 60 * 1000 ms
+    const tempoLimite = 15 * 60 * 1000; 
     timerInatividade = setTimeout(() => {
         logoutInatividade();
     }, tempoLimite);
@@ -20,7 +20,7 @@ function logoutInatividade() {
         loginOverlay.style.display = 'flex';
         const msg = document.getElementById('msg-login');
         if (msg) {
-            msg.innerText = "Sessão expirada por inatividade.";
+            msg.innerText = "Sessão expirada por inatividade (15 min).";
             msg.style.color = "orange";
         }
     }
@@ -78,6 +78,8 @@ function showSection(id) {
 
 // --- DADOS ---
 async function fetchData() {
+    if (localStorage.getItem('mks_autenticado') !== 'true') return;
+
     try {
         const res = await fetch(`${URL_API}?t=${Date.now()}`, { redirect: 'follow' });
         const data = await res.json();
@@ -359,7 +361,8 @@ async function realizarLogin() {
         if (resultado.trim() === "SUCESSO") {
             localStorage.setItem('mks_autenticado', 'true');
             document.getElementById('login-overlay').style.display = 'none';
-            iniciarMonitoramento(); // Inicia timer após login
+            iniciarMonitoramento(); 
+            fetchData(); // Busca dados após login bem sucedido
         } else {
             msg.innerText = "Senha incorreta!";
             msg.style.color = "#ef4444";
@@ -382,14 +385,13 @@ function checarAcesso() {
     }
 }
 
-// Inicialização única e organizada
+// Inicialização organizada
 checarAcesso(); 
 
 window.onload = () => {
     checarAcesso(); 
-    fetchData();
-    // Se já estiver logado ao abrir a página, inicia o timer de inatividade
     if (localStorage.getItem('mks_autenticado') === 'true') {
         iniciarMonitoramento();
+        fetchData();
     }
 };
