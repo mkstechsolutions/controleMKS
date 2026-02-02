@@ -565,3 +565,18 @@ body {
     .login-card { padding: 25px 20px; }
     .login-brand { font-size: 1.8rem; }
 }
+
+/* Previne zoom automático em inputs no Mobile */
+@media (max-width: 768px) {
+    .mks-input, 
+    .mks-input-filter, 
+    .input-group input, 
+    select.mks-input,
+    input[type="text"], 
+    input[type="number"], 
+    input[type="password"], 
+    input[type="date"] {
+        font-size: 16px !important;
+    }
+}
+
