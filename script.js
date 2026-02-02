@@ -1,13 +1,63 @@
-const URL_API = "https://script.google.com/macros/s/AKfycbzS_fuG0LNhfvMPdr5WKGK57ULvf8_xaAoAMgxeoLmcoMondkP2-zcc22Bv_Us5WCr5ww/exec";
+const URL_API = "https://script.google.com/macros/s/AKfycbzCdfXD1SALVXdZJ-wdwlmVfFT7vXyTMb9wLuHET3LzjPdXFGkQZeaVen-46TH7Jtn2Rw/exec";
 let DADOS_GLOBAIS = { estoque: [], financeiro: [] };
 let meuGrafico = null;
 let timerInatividade; 
 
-// --- LÓGICA DE INATIVIDADE (Ajustado para 15 minutos) ---
+// --- LÓGICA DE SEGURANÇA E ACESSO ---
+
+function checarAcesso() {
+    const loginOverlay = document.getElementById('login-overlay');
+    const logado = localStorage.getItem('mks_autenticado') === 'true';
+    
+    if (!logado) {
+        if (loginOverlay) loginOverlay.style.display = 'flex';
+    } else {
+        if (loginOverlay) loginOverlay.style.display = 'none';
+        iniciarMonitoramento();
+        fetchData();
+    }
+}
+
+async function realizarLogin() {
+    const senha = document.getElementById('senha-login').value;
+    const btn = document.getElementById('btn-entrar');
+    const msg = document.getElementById('msg-login');
+
+    if (!senha) return alert("Por favor, insira a chave de acesso.");
+    
+    btn.innerText = "Verificando...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(URL_API, {
+            method: 'POST',
+            body: JSON.stringify({ acao: "VERIFICAR_LOGIN", senha: senha })
+        });
+        const resultado = await response.text();
+
+        if (resultado.trim() === "SUCESSO") {
+            localStorage.setItem('mks_autenticado', 'true');
+            document.getElementById('login-overlay').style.display = 'none';
+            iniciarMonitoramento();
+            fetchData();
+        } else {
+            msg.innerText = "Chave de acesso incorreta!";
+            msg.style.color = "#ef4444";
+            btn.innerText = "ENTRAR";
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert("Erro ao conectar com o servidor.");
+        btn.innerText = "ENTRAR";
+        btn.disabled = false;
+    }
+}
+
+// --- LÓGICA DE INATIVIDADE (15 minutos) ---
+
 function resetarTimer() {
     clearTimeout(timerInatividade);
-    // 15 minutos = 15 * 60 * 1000 ms
-    const tempoLimite = 15 * 60 * 1000; 
+    const tempoLimite = 15 * 60 * 1000; // 15 minutos
     timerInatividade = setTimeout(() => {
         logoutInatividade();
     }, tempoLimite);
@@ -15,15 +65,7 @@ function resetarTimer() {
 
 function logoutInatividade() {
     localStorage.removeItem('mks_autenticado');
-    const loginOverlay = document.getElementById('login-overlay');
-    if (loginOverlay) {
-        loginOverlay.style.display = 'flex';
-        const msg = document.getElementById('msg-login');
-        if (msg) {
-            msg.innerText = "Sessão expirada por inatividade (15 min).";
-            msg.style.color = "orange";
-        }
-    }
+    location.reload(); // Recarrega para bloquear tudo
 }
 
 function iniciarMonitoramento() {
@@ -34,7 +76,8 @@ function iniciarMonitoramento() {
     resetarTimer();
 }
 
-// --- 1. MÁSCARA DE MOEDA ---
+// --- MÁSCARAS E UTILITÁRIOS ---
+
 function aplicarMascaraMoeda(seletor) {
     const campo = document.querySelector(seletor);
     if (!campo) return;
@@ -46,7 +89,6 @@ function aplicarMascaraMoeda(seletor) {
     });
 }
 
-// --- UTILITÁRIOS ---
 function formatarMoeda(valor) {
     let v = typeof valor === 'number' ? valor : limparMoeda(valor);
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -66,6 +108,7 @@ function converterParaData(strData) {
 }
 
 // --- NAVEGAÇÃO ---
+
 function showSection(id) {
     document.querySelectorAll('.app-section').forEach(s => s.style.display = 'none');
     const sec = document.getElementById('sec-' + id);
@@ -76,7 +119,8 @@ function showSection(id) {
     if(document.getElementById(btnId)) document.getElementById(btnId).classList.add('active');
 }
 
-// --- DADOS ---
+// --- GESTÃO DE DADOS (FETCH) ---
+
 async function fetchData() {
     if (localStorage.getItem('mks_autenticado') !== 'true') return;
 
@@ -84,7 +128,11 @@ async function fetchData() {
         const res = await fetch(`${URL_API}?t=${Date.now()}`, { redirect: 'follow' });
         const data = await res.json();
         DADOS_GLOBAIS = data;
-        renderDash(); renderEstoque(); renderFinanceiro();
+        
+        renderDash(); 
+        renderEstoque(); 
+        renderFinanceiro();
+        
         document.getElementById('status-conexao').innerText = "Sincronizado";
         document.getElementById('dot-status').style.background = "#10b981";
     } catch (e) {
@@ -93,9 +141,12 @@ async function fetchData() {
     }
 }
 
+// --- RENDERIZAÇÃO DASHBOARD ---
+
 function renderDash() {
     let entradasTotal = 0, saidasTotal = 0, vendasCount = 0;
     let lucroPotencialEstoque = 0;
+    
     const valInicio = document.getElementById('dash-data-inicio').value;
     const valFim = document.getElementById('dash-data-fim').value;
     const filtroInicio = valInicio ? new Date(valInicio + 'T00:00:00') : null;
@@ -110,8 +161,12 @@ function renderDash() {
             if (filtroFim && dataTransacao > filtroFim) passFiltro = false;
         }
         if (passFiltro) {
-            if (f.TIPO.toLowerCase().includes("venda")) { entradasTotal += v; vendasCount++; }
-            else { saidasTotal += v; }
+            if (f.TIPO.toLowerCase().includes("venda")) { 
+                entradasTotal += v; 
+                vendasCount++; 
+            } else { 
+                saidasTotal += v; 
+            }
         }
     });
 
@@ -162,17 +217,30 @@ function renderizarGrafico(fIni, fFim) {
     });
 }
 
-function exportarEstoque() {
-    let csv = 'ID/SN;Categoria;Produto;Detalhes;Qtd;Custo;Venda;Status\n';
-    DADOS_GLOBAIS.estoque.forEach(i => {
-        csv += `${i.ID_SN};${i.CATEGORIA};${i.PRODUTO};${i.DETALHES};${i.QTD};${i.VALOR_CUSTO};${i.VALOR_VENDA};${i.STATUS}\n`;
-    });
-    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Estoque_MKS_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
-    link.click();
+// --- ESTOQUE E PRODUTOS ---
+
+function renderEstoque() {
+    const filtro = document.getElementById('filtro-estoque').value.toLowerCase();
+    const lista = document.getElementById('lista-estoque');
+    let itens = DADOS_GLOBAIS.estoque.filter(i => 
+        String(i.ID_SN).toLowerCase().includes(filtro) || 
+        String(i.PRODUTO).toLowerCase().includes(filtro)
+    );
+    
+    itens.sort((a, b) => (a.STATUS === 'Vendido' ? 1 : -1));
+    
+    lista.innerHTML = itens.map(i => {
+        const isVendido = i.STATUS === 'Vendido';
+        return `<tr>
+            <td><strong class="sn-badge">${i.ID_SN}</strong></td>
+            <td>${i.CATEGORIA}</td>
+            <td>${i.PRODUTO}</td>
+            <td><small>${i.DETALHES}</small></td>
+            <td>${i.QTD}</td>
+            <td>${formatarMoeda(i.VALOR_VENDA)}</td>
+            <td><span class="status-pill ${isVendido ? 'red' : 'green'}">${i.STATUS}</span></td>
+        </tr>`;
+    }).join('');
 }
 
 function gerarID(cat) {
@@ -188,7 +256,7 @@ function renderCamposDinamicos() {
         <input type="text" id="f-sn" class="mks-input" value="${gerarID(cat)}">
         <input type="text" id="f-modelo" class="mks-input" placeholder="Nome/Modelo">
         <input type="text" id="f-detalhes" class="mks-input" placeholder="Detalhes">
-        <div class="input-row">
+        <div class="input-row" style="display:flex; gap:10px;">
             <input type="text" id="f-custo" class="mks-input" placeholder="Custo R$ 0,00">
             <input type="text" id="f-venda" class="mks-input" placeholder="Venda R$ 0,00">
         </div>
@@ -198,21 +266,32 @@ function renderCamposDinamicos() {
     aplicarMascaraMoeda('#f-venda');
 }
 
-function renderEstoque() {
-    const filtro = document.getElementById('filtro-estoque').value.toLowerCase();
-    const lista = document.getElementById('lista-estoque');
-    let itens = DADOS_GLOBAIS.estoque.filter(i => String(i.ID_SN).toLowerCase().includes(filtro) || String(i.PRODUTO).toLowerCase().includes(filtro));
-    itens.sort((a, b) => (a.STATUS === 'Vendido' ? 1 : -1));
-    lista.innerHTML = itens.map(i => {
-        const isVendido = i.STATUS === 'Vendido';
-        return `<tr>
-            <td><strong class="sn-badge">${i.ID_SN}</strong></td>
-            <td>${i.CATEGORIA}</td><td>${i.PRODUTO}</td><td><small>${i.DETALHES}</small></td><td>${i.QTD}</td>
-            <td>${formatarMoeda(i.VALOR_VENDA)}</td>
-            <td><span class="status-pill ${isVendido ? 'red' : 'green'}">${i.STATUS}</span></td>
-        </tr>`;
-    }).join('');
+async function salvarProduto() {
+    const modelo = document.getElementById('f-modelo').value;
+    const custoRaw = document.getElementById('f-custo').value;
+    const vendaRaw = document.getElementById('f-venda').value;
+
+    if(!modelo) return alert("Digite o modelo!");
+    if(!custoRaw || !vendaRaw) return alert("Preencha os valores!");
+    
+    const btn = document.getElementById('btn-salvar-produto');
+    btn.innerText = "Enviando..."; btn.disabled = true;
+
+    const dados = { 
+        acao: "CADASTRAR_PRODUTO", 
+        categoria: document.getElementById('add-categoria').value, 
+        imei: document.getElementById('f-sn').value, 
+        produto: modelo, 
+        specs: document.getElementById('f-detalhes').value, 
+        custo: limparMoeda(custoRaw), 
+        valor: limparMoeda(vendaRaw), 
+        qtd: document.getElementById('f-qtd').value 
+    };
+    
+    await executarPost(dados, "Produto Cadastrado!");
 }
+
+// --- FINANCEIRO E VENDAS ---
 
 function renderFinanceiro() {
     const filtro = document.getElementById('filtro-financeiro').value.toLowerCase();
@@ -221,8 +300,24 @@ function renderFinanceiro() {
         .filter(f => String(f.DESCRICAO).toLowerCase().includes(filtro) || String(f.TIPO).toLowerCase().includes(filtro))
         .map(f => {
             const isVenda = f.TIPO.toLowerCase().includes('venda');
-            return `<tr><td>${f.DATA}</td><td><span class="status-pill ${isVenda?'green':'red'}">${f.TIPO}</span></td><td>${f.DESCRICAO}</td><td class="${isVenda?'text-success':'text-danger'}">${formatarMoeda(f.VALOR)}</td><td>${f.PAGAMENTO || 'Outro'}</td></tr>`;
+            return `<tr>
+                <td>${f.DATA}</td>
+                <td><span class="status-pill ${isVenda?'green':'red'}">${f.TIPO}</span></td>
+                <td>${f.DESCRICAO}</td>
+                <td class="${isVenda?'text-success':'text-danger'}">${formatarMoeda(f.VALOR)}</td>
+                <td>${f.PAGAMENTO || 'Outro'}</td>
+            </tr>`;
         }).reverse().join('');
+}
+
+function abrirModalVenda() {
+    const disp = DADOS_GLOBAIS.estoque.filter(i => i.STATUS === "Disponível");
+    const select = document.getElementById('venda-select-item');
+    select.innerHTML = disp.map(i => `<option value="${i.ID_SN}">${i.PRODUTO} (${i.ID_SN})</option>`).join('');
+    document.getElementById('modalVenda').style.display = 'flex';
+    voltarPassoVenda();
+    atualizarValorSugerido();
+    aplicarMascaraMoeda('#venda-valor-final');
 }
 
 function atualizarValorSugerido() {
@@ -233,28 +328,14 @@ function atualizarValorSugerido() {
     }
 }
 
-function abrirModalVenda() {
-    const disp = DADOS_GLOBAIS.estoque.filter(i => i.STATUS === "Disponível");
-    const select = document.getElementById('venda-select-item');
-    select.innerHTML = disp.map(i => `<option value="${i.ID_SN}">${i.PRODUTO} (${i.ID_SN})</option>`).join('');
-    document.getElementById('modalVenda').style.display = 'flex';
-    document.getElementById('cli-nome').value = "";
-    document.getElementById('cli-cpf').value = "";
-    voltarPassoVenda();
-    atualizarValorSugerido();
-    aplicarMascaraMoeda('#venda-valor-final');
-}
-
 async function confirmarVendaFinal() {
     const nome = document.getElementById('cli-nome').value;
     const valorLimpo = limparMoeda(document.getElementById('venda-valor-final').value);
     
     if(!nome || valorLimpo <= 0) return alert("Preencha nome e valor!");
-    if(!confirm(`Confirmar venda para ${nome} no valor de ${formatarMoeda(valorLimpo)}?`)) return;
 
     const btn = document.getElementById('btn-finalizar-venda');
-    btn.innerText = "Processando..."; 
-    btn.disabled = true;
+    btn.innerText = "Processando..."; btn.disabled = true;
 
     const sn = document.getElementById('venda-select-item').value;
     const item = DADOS_GLOBAIS.estoque.find(i => String(i.ID_SN) === String(sn));
@@ -272,6 +353,7 @@ async function confirmarVendaFinal() {
     try {
         await fetch(URL_API, { method: 'POST', mode: 'no-cors', body: JSON.stringify(dadosVenda) });
 
+        // Gerar Recibo PDF
         document.getElementById('pdf-data').innerText = new Date().toLocaleDateString('pt-BR');
         document.getElementById('pdf-cliente').innerText = nome;
         document.getElementById('pdf-cpf').innerText = cpf || "---";
@@ -282,44 +364,18 @@ async function confirmarVendaFinal() {
         
         const recibo = document.getElementById('area-recibo');
         recibo.style.display = 'block';
-
         await html2pdf().from(recibo).save(`Recibo_${nome}.pdf`);
         recibo.style.display = 'none';
 
-        alert("Venda registrada e recibo gerado com sucesso!");
+        alert("Venda realizada!");
         location.reload();
     } catch (e) { 
-        console.error("Erro na operação:", e);
-        alert("Erro ao registrar venda. O recibo não foi gerado."); 
-        btn.disabled = false; 
-        btn.innerText = "Finalizar Venda"; 
+        alert("Erro ao processar."); 
+        btn.disabled = false; btn.innerText = "Finalizar";
     }
 }
 
-async function salvarProduto() {
-    const modelo = document.getElementById('f-modelo').value;
-    const custoRaw = document.getElementById('f-custo').value;
-    const vendaRaw = document.getElementById('f-venda').value;
-
-    if(!modelo) return alert("Digite o modelo!");
-    if(!custoRaw || !vendaRaw) return alert("Preencha os valores de custo e venda!");
-    if(!confirm(`Deseja cadastrar o produto ${modelo}?`)) return;
-
-    const btn = document.getElementById('btn-salvar-produto');
-    btn.innerText = "Enviando..."; btn.disabled = true;
-
-    const dados = { 
-        acao: "CADASTRAR_PRODUTO", 
-        categoria: document.getElementById('add-categoria').value, 
-        imei: document.getElementById('f-sn').value, 
-        produto: modelo, 
-        specs: document.getElementById('f-detalhes').value, 
-        custo: limparMoeda(custoRaw), 
-        valor: limparMoeda(vendaRaw), 
-        qtd: document.getElementById('f-qtd').value 
-    };
-    await executarPost(dados, "Produto Cadastrado!");
-}
+// --- AUXILIARES GERAIS ---
 
 async function executarPost(dados, msg) {
     try {
@@ -328,70 +384,30 @@ async function executarPost(dados, msg) {
     } catch (e) { alert("Erro ao enviar."); location.reload(); }
 }
 
+function exportarEstoque() {
+    let csv = 'ID/SN;Categoria;Produto;Detalhes;Qtd;Custo;Venda;Status\n';
+    DADOS_GLOBAIS.estoque.forEach(i => {
+        csv += `${i.ID_SN};${i.CATEGORIA};${i.PRODUTO};${i.DETALHES};${i.QTD};${i.VALOR_CUSTO};${i.VALOR_VENDA};${i.STATUS}\n`;
+    });
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Estoque_MKS.csv`;
+    link.click();
+}
+
 function abrirModalAdd() { document.getElementById('modalAdd').style.display = 'flex'; renderCamposDinamicos(); }
 function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
 function proximoPassoVenda() { document.getElementById('venda-step-1').style.display = 'none'; document.getElementById('venda-step-2').style.display = 'block'; }
 function voltarPassoVenda() { document.getElementById('venda-step-1').style.display = 'block'; document.getElementById('venda-step-2').style.display = 'none'; }
-
 function toggleFiltrosMobile() {
-    const container = document.getElementById('container-datas-mobile');
-    if (container.style.display === 'none' || container.style.display === '') {
-        container.style.display = 'flex';
-    } else {
-        container.style.display = 'none';
-    }
+    const c = document.getElementById('container-datas-mobile');
+    c.style.display = (c.style.display === 'flex') ? 'none' : 'flex';
 }
 
-async function realizarLogin() {
-    const senha = document.getElementById('senha-login').value;
-    const btn = document.getElementById('btn-entrar');
-    const msg = document.getElementById('msg-login');
-
-    if (!senha) return alert("Digite a senha!");
-    btn.innerText = "Verificando...";
-    btn.disabled = true;
-
-    try {
-        const response = await fetch(URL_API, {
-            method: 'POST',
-            body: JSON.stringify({ acao: "VERIFICAR_LOGIN", senha: senha })
-        });
-        const resultado = await response.text();
-
-        if (resultado.trim() === "SUCESSO") {
-            localStorage.setItem('mks_autenticado', 'true');
-            document.getElementById('login-overlay').style.display = 'none';
-            iniciarMonitoramento(); 
-            fetchData(); // Busca dados após login bem sucedido
-        } else {
-            msg.innerText = "Senha incorreta!";
-            msg.style.color = "#ef4444";
-            btn.innerText = "Entrar";
-            btn.disabled = false;
-        }
-    } catch (e) {
-        alert("Erro de conexão.");
-        btn.disabled = false;
-        btn.innerText = "Entrar";
-    }
-}
-
-function checarAcesso() {
-    const loginOverlay = document.getElementById('login-overlay');
-    if (localStorage.getItem('mks_autenticado') !== 'true') {
-        if (loginOverlay) loginOverlay.style.display = 'flex';
-    } else {
-        if (loginOverlay) loginOverlay.style.display = 'none';
-    }
-}
-
-// Inicialização organizada
-checarAcesso(); 
+// --- INICIALIZAÇÃO ---
 
 window.onload = () => {
     checarAcesso(); 
-    if (localStorage.getItem('mks_autenticado') === 'true') {
-        iniciarMonitoramento();
-        fetchData();
-    }
 };
